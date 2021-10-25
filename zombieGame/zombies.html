@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+
+    <!-- title that appears at the top of the tab -->
+    <title>Zombie Game</title>
+
+    <!-- link to stylesheet that contains the great vibes font -->
+    <link href="https://fonts.googleapis.com/css?family=Great+Vibes&display=swap" rel="stylesheet">
+
+    <style media="screen">
+
+      /*styles the body of the site to set up the background image*/
+      body {
+        background-image:url(images/background1.png);
+        background-size:100% 100%;
+        background-repeat:no-repeat;
+        background-attachment: fixed;
+
+        /* nothing can be selected/highlighted and the page does not get a scroll bar when zombies take up too much space*/
+        overflow: hidden;
+        color:white;
+        user-select: none;
+
+      }
+
+      /*styles all zombies*/
+      .zombie {
+        border:0px solid #fff;
+        width:0px;
+      }
+
+      /*makes it so that when you hover over a zombie or a creeper the crosshair appears*/
+      .zombie,.creepa:hover {
+        cursor: url(images/crosshair.png), auto;
+      }
+
+      /*styles lose message div*/
+      #startMessage {
+        position:absolute;
+        margin-top:0px;
+        width:100%;
+        height:100%;
+        text-align:center;
+      }
+
+      /*styles start message text*/
+      #startMessage span {
+        margin-left:auto;
+        margin-right:auto;
+        font-size:22px;
+        font-weight:bold;
+      }
+
+      /*styles lose message div*/
+      #winMessage {
+        position:absolute;
+        margin-top:150px;
+        width:100%;
+        height:100%;
+        text-align:center;
+        color:darkgreen;
+        font-family:"Great Vibes";
+        display:none;
+
+
+      }
+      /*styles lose message div*/
+      #loseMessage {
+        position:absolute;
+        margin-top:150px;
+        width:100%;
+        height:100%;
+        text-align:center;
+        color:red;
+        font-family: cursive;
+        display:none;
+      }
+
+      /*styles lose message text*/
+      #loseMessage span {
+        margin-left:auto;
+        margin-right:auto;
+        font-size:60px;
+        color:red;
+        text-shadow: 1px 1px 2px black, 0 0 1em darkgreen, 0 0 0.2em darkgreen;
+      }
+
+      /*styles win message text*/
+      #winMessage span {
+        margin-left:auto;
+        margin-right:auto;
+        font-size:60px;
+        color:darkgreen;
+        text-shadow: 1px 1px 2px black, 0 0 1em pink, 0 0 0.2em pink;
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <!-- creepy elephant jumpscare gif that becomes visible when you lose the game -->
+    <div id="elephant" onClick="killElephant()" style="width:100%;height:100%;position:absolute;top:0px;left:0px;background-image:url(images/elephantscariness.gif);background-size:100% 100%;display:none;"></div>
+
+    <!-- various sounds -->
+    <audio id="pew" src="sounds/Pew_Pew.wav" preload="auto" type="audio/wav"></audio>
+    <audio id="nope" src="sounds/nope.mp3" preload="auto" type="audio/mp3"></audio>
+    <audio id="quieresslap" src="sounds/quieresslap.mp3" preload="auto" type="audio/mp3"></audio>
+    <audio id="quieres" src="sounds/quieres.mp3" preload="auto" type="audio/mp3"></audio>
+    <audio id="explode" src="sounds/explode.mp3" preload="auto" type="audio/mp3"></audio>
+    <audio id="crunch" src="sounds/crunch.mp3" preload="auto" type="audio/mp3"></audio>
+    <audio id="soproud" src="sounds/soproud.mp3" preload="auto" type="audio/mp3"></audio>
+    <audio id="win" src="sounds/win.mp3" preload="auto" type="audio/mp3"></audio>
+    <audio id="moan" src="sounds/Zombie-Moan.wav" preload="auto" type="audio/wav"></audio>
+
+    <!-- div that cntains all things that should go away when start is pressed like the difficulty slider and such -->
+    <div id="startthingiesthatneedtogoaway">
+      Select your difficulty: <br>
+      <!-- text that changes based on the value of the slider -->
+      <div id="difficultytext">
+        Egg hard
+      </div>
+
+      <!-- slider that goes from 200 to 2000. its value is used as the speed of the setTimeout function -->
+      <input id="hardity" oninput="updateDifficulty(this)" type="range" min="200" max="2000" value="1000" style="transform: rotate(-90deg);margin-left:-50px;margin-top:60px;margin-bottom:70px;"> <br>
+    </div>
+
+    <!-- button to start the game by running the update function -->
+    <button id="startbutton" type="button" onClick="update()">Start</button><br>
+
+    <!-- score and level text spans that appear when the game starts and update during the game -->
+    <span id="score"></span><br>
+    <span id="level"></span><br>
+
+    <!-- div that contains the start message -->
+    <div id="startMessage">
+      <span>
+        Welcome to the Zombie Apocalypse<br>Click "Start" to play.<br>
+        Click the zombies to "stop" them. You might miss because your aim isn't the best.<br>
+        The harder your difficulty, the faster the zombies run towards you! <br>Hit start for the first level.<br>
+        Refresh your browser to completely reset the game.<br>Good Luck!
+      </span><br>
+    </div>
+
+    <!-- div that contains the win message -->
+    <div id="winMessage">
+      <span>
+        You have survived <br>
+        and made it to safety!!!!
+      </span><br>
+    </div>
+
+    <!-- div that contains the lose message -->
+    <div id="loseMessage" onClick="killElephant()">
+      <span>
+        lol u died <br>
+        click anywhere to reset game
+      </span>
+    </div>
+
+
+    <script type="text/javascript">
+      /*********************************************************************
+      * https://www.w3schools.com/jsref/met_win_settimeout.asp
+      * SetTimeOut thing very cool
+      *******************************************************************/
+
+      //defines a bunch of variables for the game - CAPS indicate constants
+      var score = 0;
+
+      //every zombie is given a unique id when spawned and this variable is the number in each zombie's id
+      var zombienumber = 1;
+
+      //every creeper is given a unique id when spawned and this variable is the number in each creeper's id
+      var creepanumber = 1;
+
+      //constant that is the maximum zombie size before losing the game
+      var GAMEOVERSIZE = 600;
+
+      //constant that is the number of required hits on one type of zombie to win the level
+      var NUMHITS = 5;
+
+      //boolean that is set to true when you lose the game
+      var gameover = false;
+
+      //list of image numbers of all of the zombies that you've killed
+      var deadzombies = [];
+
+      //level you're on - starts on 0 because update funcion increments it
+      var level = 0;
+
+      //boolean that is set to true when you win the level
+      var levelwon = false;
+
+      //variable that is used as the time parameter for the setTimeout function
+      var speed;
+
+
+      //function that is called when the difficulty slider is moved, changes the text above the slider for the specific difficulty ranges
+      function updateDifficulty(slider) {
+        //k is a varible that is given the value of the difficulty slider
+        var k = eval(slider.value);
+
+        //sets the text above the slider according to the value of the slider
+        if (k==200) {
+          document.getElementById("difficultytext").innerHTML = "HARDEST";
+        } else if (k>200 && k<=500) {
+          document.getElementById("difficultytext").innerHTML = "Rock hard";
+        } else if (k>500 && k<=1000) {
+          document.getElementById("difficultytext").innerHTML = "Egg hard";
+        } else if (k>1000 && k<=1500) {
+          document.getElementById("difficultytext").innerHTML = "Ez Bake Oven";
+        } else if (k>1500 && k<2000) {
+          document.getElementById("difficultytext").innerHTML = "Ez-er Bake Oven";
+        } else if (k==2000) {
+          document.getElementById("difficultytext").innerHTML = "You're doodoo.";
+        }
+
+      }
+
+      //this function is called by the button to start a level - resets a bunch of variables, sets background image based on the level you're on
+      function update() {
+
+        level += 1;
+
+        /*switch statement that sets the background image of the site based on the
+        level variable. if beyond 10, the background image stays on the 10th level image. */
+        switch (level) {
+          case 1:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background1.png')";
+            break;
+          case 2:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background2.jpg')";
+            break;
+          case 3:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background3.jpg')";
+            break;
+          case 4:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background4.png')";
+            break;
+          case 5:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background5.png')";
+            break;
+          case 6:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background6.png')";
+            break;
+          case 7:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background7.jpg')";
+            break;
+          case 8:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/bcakground8.jpg')";
+            break;
+          case 9:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background9.png')";
+            break;
+          case 10:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background10.jpg')";
+            break;
+          default:
+            document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background10.jpg')";
+        }
+
+        deadzombies = [];
+        gameover = false;
+        levelwon = false;
+        speed = eval(document.getElementById("hardity").value);
+        document.getElementById("startthingiesthatneedtogoaway").style.display = "none";
+        document.getElementById("winMessage").style.display = "none";
+
+        //gets an array of all elements with class zombie and then deletes each one so that there are no zombies on start of level
+        var zombies = document.getElementsByClassName('zombie');
+        for (i = zombies.length-1; i >= 0; i--) {
+          zombies[i].remove(); //the remove() function for a dom element simply removes it from the webpage.
+        }
+
+        //Updates text boxes that you need during the level and hides the ones you don't need, also plays the quieres slap and then 1.5 s later plays the slap sound
+        document.getElementById("score").innerHTML = "Score: " + score;
+        document.getElementById("level").innerHTML = "Level: " + level;
+        document.getElementById("quieresslap").play();
+        setTimeout(function(){document.getElementById("quieres").play();},1500);
+        document.getElementById("startMessage").style.display = "none";
+        document.getElementById("startbutton").style.display = "none";
+
+        //calls the newZombie x times where x is the level you're on plus 2
+        for (var i = 0; i < level + 2; i++) {
+          newZombie();
+        }
+
+        //gets an array of all zombies and gives them each absolute position, a random left and top, and a 0px width
+        var zombies = document.getElementsByClassName('zombie');
+        for (i = 0; i < zombies.length; i++) {
+          zombies[i].style.width = "0px";
+          zombies[i].style.position = "absolute";
+          zombies[i].style.left = myrandom(20,1000) + "px";
+          zombies[i].style.top = myrandom(20,350) + "px";
+
+        }
+
+        setTimeout(function(){zombiesize();},1500);
+
+      }
+
+      /* changes the size of all elements with class zombie in the page
+      function calls itself in a recursive way to keep game going */
+      function zombiesize() {
+        /*adds 20 pixels to the width of every zombie by making an array of all
+        zombie elements on the page. also checks if each individual zombie is
+        above the gameoversize and sets gameover to true if so */
+        var zombies = document.getElementsByClassName('zombie');
+        for (i = 0; i < zombies.length; i++) {
+          var px = eval(zombies[i].style.width.replace('px',''));
+          px += 20;
+          // if the current zombie being checked has a midth larger than the gameoversize, sets gameover to true
+          if (px >= GAMEOVERSIZE) {
+            gameover = true;
+          }
+          zombies[i].style.width = px + "px";
+        }
+
+        document.getElementById("moan").currentTime = 0;
+        document.getElementById("moan").play();
+
+        /* if gameover boolean is true, deletes all zombies and creepers by
+        making arrays with all zombies and creepers and deleting them one by
+        one. then, plays crunch sound, displays elephant jumpscare, changes the
+        background image to the lose image, and displays the losemessage. if
+        levelwon boolean is true, breaks out of the zombiesize function recursion,
+        and otherwise calls the zombiesize function */
+        if (gameover) {
+          var zombies = document.getElementsByClassName('zombie');
+          for (i = zombies.length-1; i >= 0; i--) {
+            zombies[i].remove();
+          }
+          var creepas = document.getElementsByClassName('creepa');
+          for (var i = creepas.length-1; i >= 0; i--) {
+            creepas[i].remove();
+          }
+          document.getElementById("crunch").play();
+          document.getElementById("elephant").style.display = "initial";
+          document.body.style.backgroundImage = "url('images/background-lose.jpg')";
+          document.getElementById("loseMessage").style.display = "initial";
+          gameover = false;
+
+        } else if (levelwon) {
+
+        } else {
+          setTimeout(function(){zombiesize();}, speed);
+        }
+
+      }
+
+      //function that returns a random integer out of a range of numbers
+      function myrandom(min,max) {
+        var random = (Math.floor(Math.random() * (max-min) + min));
+        return random;
+      }
+
+      /*function that is called when a zombie is clicked on and the function is
+      given the id of that particular zombie to either delete it or not based on a random #. */
+      function headshot(id) {
+
+        /*creates a random number 1 to 2 and
+        if its 2 it deletes the zombie, plays the pew noise and adds the number
+        in its image url to the deadzombies array. also adds 1 to score. if the
+        random number isn't 2, plays the nope sound effect. */
+        rand = myrandom(1,3);
+        if (rand===2) {
+          document.getElementById("pew").play();
+          var zombieAtId = document.getElementById(id);
+          var imgnum = document.getElementById(id).getAttribute('src').replace('images/zombie','').replace('.png',''); //stores the zombie image number as a string, in the next line it puts it in the array of dead zombies
+          deadzombies.push(imgnum);
+          zombieAtId.remove();
+          score += 1;
+          document.getElementById("score").innerHTML = "Score: " + score;
+          newZombie();
+        } else {
+          document.getElementById("nope").pause();
+          document.getElementById("nope").currentTime = 0;
+          document.getElementById("nope").play();
+        }
+
+        /*checks the number of each dead zombie in the deadzombies array and if
+        one of them is greater than the NUMHITS var, sets levelwon to true */
+        for (var zombnum = 1; zombnum < 9; zombnum++) {
+          var count = 0;
+          for (var i = 0; i < deadzombies.length; i++) {
+            if(eval(deadzombies[i]) == zombnum)
+              count++;
+          }
+          if (count>=NUMHITS) {
+            levelwon = true;
+          }
+        }
+        // if levelwon boolean is true, calls next level function
+        if (levelwon) {
+          nextLevel();
+        }
+      }
+
+      /*function that is called when a creeper is clicked on - deletes itself
+      and all creepers and zombies on the page and plays explode sound */
+      function explode(id) {
+        document.getElementById("explode").play();
+        /*creates an array of all zombies and one of all creepers and deletes them all*/
+        var zombies = document.getElementsByClassName('zombie');
+        for (i = zombies.length-1; i >= 0; i--) {
+          zombies[i].remove();
+        }
+        var creepas = document.getElementsByClassName('creepa');
+        for (var i = creepas.length-1; i >= 0; i--) {
+          creepas[i].remove();
+        }
+        //calls the newZombie x times where x is the level you're on plus 2
+        for (var i = 0; i < level + 2; i++) {
+          newZombie();
+        }
+      }
+
+      /*function that creates a new image element with class zombie and has a 1
+      in 30 chance of creating an image element with class creeper. */
+      function newZombie() {
+
+        /*each zombie is given an id that is not yet taken so there are
+        no repeating ids, a random image number and src based on that image number,
+        an onclick headshot function with its id, the zombie class, a blank alt attribute
+        makes the zombie 0px wide and gives it a random left and top and absolute position.
+        also adds 1 to zombienumber */
+        var imgidee = myrandom(1,9);
+        var zomb = document.createElement("IMG");
+        zomb.setAttribute("src", "images/zombie"+imgidee+".png");
+        zomb.setAttribute("alt", "");
+        zomb.setAttribute("id", "zombie" + zombienumber);
+        zomb.setAttribute("onClick", "headshot('"+zomb.id+"')");
+        zomb.setAttribute("class","zombie");
+
+        document.body.appendChild(zomb);
+
+        zomb.style.width = "0px";
+        zomb.style.position = "absolute";
+        zomb.style.left = myrandom(20,1000) + "px";
+        zomb.style.top = myrandom(20,350) + "px";
+        zombienumber += 1;
+
+        if (myrandom(1,30)===7) {
+          /*theres a 1 in 30 chance that a creepa element will be created  and each creepa
+          is given an id that is not yet taken so there are no repeating ids, the
+          creepa image src, an onclick explode with its id function, the creepa
+          class, a blank alt attribute. makes the creepa 200px wide and have
+          a random top and left and absolute position. also adds 1 to creepanumber variable */
+          var creepa = document.createElement("IMG");
+          creepa.setAttribute("src", "images/creepa.png");
+          creepa.setAttribute("alt", "");
+          creepa.setAttribute("class","creepa");
+          creepa.setAttribute("id", "creepa" + creepanumber);
+          creepa.setAttribute("onClick", "explode('"+creepa.id+"')");
+
+          document.body.appendChild(creepa);
+
+          creepa.style.width = "200px";
+          creepa.style.position = "absolute";
+          creepa.style.left = myrandom(20,1000) + "px";
+          creepa.style.top = myrandom(20,350) + "px";
+          creepanumber += 1;
+        }
+
+      }
+
+      /*function that is called when the elephant is clicked on that resets the
+      game to how it was when the page was first loaded. */
+      function killElephant() {
+        document.getElementById("elephant").style.display = "none";
+        document.getElementById("loseMessage").style.display = "none";
+        document.getElementById("startbutton").style.display = "initial";
+        document.getElementById("startMessage").style.display = "initial";
+        document.getElementById("startthingiesthatneedtogoaway").style.display = "initial";
+        document.getElementById("crunch").pause();
+        document.getElementById("crunch").currentTime = 0;
+        document.body.style.backgroundImage = "url(images/background1.png)";
+
+        score = 0;
+        level = 0;
+      }
+
+      /*function that is called when the level is won. deletes all zombies and
+      creepers and displays start button and winmessage and plays soproud sound
+      and changes background image to win image */
+      function nextLevel() {
+
+        var zombies = document.getElementsByClassName('zombie');
+        for (i = zombies.length-1; i >= 0; i--) {
+          zombies[i].remove();
+        }
+        var creepas = document.getElementsByClassName('creepa');
+        for (var i = creepas.length-1; i >= 0; i--) {
+          creepas[i].remove();
+        }
+        document.getElementsByTagName("BODY")[0].style.backgroundImage = "url('images/background-win.jpg')";
+        document.getElementById("startbutton").style.display = "initial";
+        document.getElementById("winMessage").style.display = "initial";
+        document.getElementById("soproud").play();
+      }
+
+
+    </script>
+
+  </body>
+</html>
